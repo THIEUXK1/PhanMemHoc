@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/PhanMemHoc/PhanMemHoc.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/PhanMemHoc.Tests/PhanMemHoc.Tests.csproj" />
+  </Folder>
+</Solution>

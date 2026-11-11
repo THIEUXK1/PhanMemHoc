@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet build*)",
+      "Bash(dotnet test*)",
+      "Bash(dotnet watch*)",
+      "Bash(dotnet run*)",
+      "PowerShell(dotnet build*)",
+      "PowerShell(dotnet test*)",
+      "PowerShell(dotnet watch*)",
+      "PowerShell(dotnet run*)",
+      "Bash(git status*)",
+      "Bash(git log*)",
+      "Bash(git diff*)"
+    ],
+    "deny": [
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git reset --hard*)",
+      "Bash(rm -rf*)",
+      "PowerShell(Remove-Item*-Recurse*)",
+      "Read(./**/bin/**)",
+      "Read(./**/obj/**)",
+      "Read(./**/*.db)",
+      "Read(./**/*.log)",
+      "Read(./**/.vs/**)",
+      "Read(./**/.env)"
+    ]
+  }
+}
