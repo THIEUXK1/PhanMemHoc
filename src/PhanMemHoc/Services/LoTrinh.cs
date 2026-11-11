@@ -14,6 +14,8 @@ public record BaoCao(int TongLuot, int TongSao, int TongPhut, int SoNgayHoc7, Li
     List<PhutTheoNgay> BayNgay, List<LuotGanDay> GanDay, string? NenLuyenThem);
 
 /// <summary>Logic thuần (không truy cập DB) cho chấm điểm, mở khoá bài, gợi ý và báo cáo.</summary>
+public record HuyHieu(string Ma, string Ten, string Icon, string MoTa, bool DaCo);
+
 public static class LoTrinh
 {
     public const int TuoiNhoNhat = 3, TuoiLonNhat = 6;
@@ -28,6 +30,7 @@ public static class LoTrinh
     /// <summary>
     /// Chấm theo lần trả lời đầu tiên của bé. Câu "chon": traLoi = chỉ số đáp án đã chọn.
     /// Câu "ghep": traLoi = số lần lật sai; đúng nếu sai không quá số cặp.
+    /// Câu "noi"/"sapxep": traLoi = số lần chạm sai; đúng nếu sai tối đa 1 lần.
     /// </summary>
     public static int ChamDiem(BaiHoc bai, IReadOnlyList<int> traLoi)
     {
@@ -35,8 +38,14 @@ public static class LoTrinh
         for (var i = 0; i < bai.CauHoi.Count && i < traLoi.Count; i++)
         {
             var c = bai.CauHoi[i];
-            if (c.Loai == LoaiCauHoi.Ghep ? traLoi[i] >= 0 && traLoi[i] <= c.Cap.Count : traLoi[i] == c.DapAn)
-                dung++;
+            var t = traLoi[i];
+            var dat = c.Loai switch
+            {
+                LoaiCauHoi.Ghep => t >= 0 && t <= c.Cap.Count,
+                LoaiCauHoi.Noi or LoaiCauHoi.SapXep => t is >= 0 and <= 1,
+                _ => t == c.DapAn,
+            };
+            if (dat) dung++;
         }
         return dung;
     }
@@ -158,10 +167,40 @@ public static class LoTrinh
                         return $"Câu {so}: trò lật thẻ cần 2–8 hình.";
                     if (c.Cap.Distinct().Count() != c.Cap.Count) return $"Câu {so}: các hình lật thẻ phải khác nhau.";
                     break;
+                case LoaiCauHoi.Noi:
+                    if (c.Cap.Count < 2 || c.Cap.Count > 5) return $"Câu {so}: trò nối đôi cần 2–5 cặp.";
+                    var cap = c.Cap.Select(x => x.Split('=')).ToList();
+                    if (cap.Any(p => p.Length != 2 || p.Any(string.IsNullOrWhiteSpace)))
+                        return $"Câu {so}: mỗi cặp nối viết dạng trái=phải.";
+                    if (cap.Select(p => p[0].Trim()).Distinct().Count() != cap.Count || cap.Select(p => p[1].Trim()).Distinct().Count() != cap.Count)
+                        return $"Câu {so}: các hình bên trái (và bên phải) phải khác nhau.";
+                    break;
+                case LoaiCauHoi.SapXep:
+                    if (c.LuaChon.Count < 2 || c.LuaChon.Count > 6 || c.LuaChon.Any(string.IsNullOrWhiteSpace))
+                        return $"Câu {so}: trò xếp thứ tự cần 2–6 ô, không để trống.";
+                    if (c.LuaChon.Distinct().Count() != c.LuaChon.Count) return $"Câu {so}: các ô xếp thứ tự phải khác nhau.";
+                    break;
                 default:
                     return $"Câu {so}: loại câu hỏi không hợp lệ.";
             }
         }
         return null;
+    }
+
+    /// <summary>Huy hiệu sưu tập của bé, tính từ lộ trình hiện tại (mốc sao, bài 3 sao, hoàn thành từng nhóm).</summary>
+    public static List<HuyHieu> TinhHuyHieu(KetQuaLoTrinh lt)
+    {
+        var tatCa = lt.Nhom.SelectMany(n => n.Bai).ToList();
+        var ds = new List<HuyHieu>
+        {
+            new("sao1", "Ngôi sao đầu tiên", "⭐", "Đạt sao đầu tiên", lt.TongSao >= 1),
+            new("ba-sao", "Hoàn hảo", "🎯", "Đạt 3 sao một bài", tatCa.Any(b => b.SaoCaoNhat == 3)),
+            new("sao10", "Chăm chỉ", "🌟", "Đạt 10 sao", lt.TongSao >= 10),
+            new("sao30", "Siêu sao", "🏅", "Đạt 30 sao", lt.TongSao >= 30),
+        };
+        ds.AddRange(lt.Nhom.Select(n => new HuyHieu(
+            "nhom-" + n.Ma, "Vua " + n.Ten.ToLowerInvariant(), n.Icon, $"Qua hết các bài {n.Ten}", n.Bai.All(b => b.SaoCaoNhat >= 1))));
+        ds.Add(new("vua", "Nhà vô địch", "👑", "Đạt 3 sao tất cả các bài", tatCa.Count > 0 && tatCa.All(b => b.SaoCaoNhat == 3)));
+        return ds;
     }
 }

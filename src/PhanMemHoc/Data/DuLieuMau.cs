@@ -22,6 +22,12 @@ public static class DuLieuMau
         }
 
         if (db.BaiHoc.Count() == 0) db.BaiHoc.InsertBulk(BaiHocMau());
+        else
+        {
+            // DB cũ: chỉ thêm các bài mẫu mới (theo tiêu đề) còn thiếu, không đụng bài admin đã sửa
+            var thieu = BaiHocBoSung().Where(b => !db.BaiHoc.Exists(x => x.TieuDe == b.TieuDe)).ToList();
+            if (thieu.Count > 0) db.BaiHoc.InsertBulk(thieu);
+        }
     }
 
     private static CauHoi C(string deBai, string hien, int dapAn, params string[] luaChon) =>
@@ -29,6 +35,12 @@ public static class DuLieuMau
 
     private static CauHoi G(string deBai, params string[] cap) =>
         new() { Loai = LoaiCauHoi.Ghep, DeBai = deBai, Cap = [.. cap] };
+
+    private static CauHoi N(string deBai, params string[] cap) =>
+        new() { Loai = LoaiCauHoi.Noi, DeBai = deBai, Cap = [.. cap] };
+
+    private static CauHoi X(string deBai, params string[] thuTu) =>
+        new() { Loai = LoaiCauHoi.SapXep, DeBai = deBai, LuaChon = [.. thuTu] };
 
     private static BaiHoc B(string nangLuc, int thuTu, string tieuDe, string icon, int tuoiTu, params CauHoi[] cau) =>
         new() { NangLuc = nangLuc, ThuTu = thuTu, TieuDe = tieuDe, Icon = icon, TuoiTu = tuoiTu, TuoiDen = 6, CauHoi = [.. cau] };
@@ -107,5 +119,30 @@ public static class DuLieuMau
         B("trinho", 2, "Lật thẻ trái cây", "🍓", 4,
             G("Bé tìm các cặp trái cây giống nhau nhé!", "🍎", "🍌", "🍇", "🍓"),
             G("Thử thách khó hơn nào!", "🍉", "🍍", "🍒", "🥝", "🍑")),
+        .. BaiHocBoSung(),
+    ];
+
+    /// <summary>Bài mẫu dùng trò nối đôi / xếp thứ tự — được thêm vào cả DB đã có dữ liệu.</summary>
+    public static List<BaiHoc> BaiHocBoSung() =>
+    [
+        B("so", 4, "Xếp số", "🪜", 4,
+            X("Bé xếp các số từ bé đến lớn nhé!", "1", "2", "3"),
+            N("Bé nối số với nhóm quả dâu đúng nhé!", "1=🍓", "2=🍓🍓", "3=🍓🍓🍓"),
+            X("Xếp từ ít đến nhiều nào!", "🍎", "🍎🍎", "🍎🍎🍎", "🍎🍎🍎🍎"),
+            X("Bé xếp các số từ bé đến lớn nhé!", "2", "3", "4", "5")),
+        B("hinh", 4, "Nối màu", "🖍️", 3,
+            N("Bé nối hình tròn với đồ vật cùng màu nhé!", "🔴=🍎", "🟡=🍌", "🟢=🥦"),
+            N("Nối màu giống nhau nào!", "🔴=🍓", "🟠=🥕", "🟣=🍇", "🔵=🐳")),
+        B("sosanh", 3, "Từ nhỏ đến to", "🐭", 3,
+            X("Bé xếp các con vật từ nhỏ đến to nhé!", "🐜", "🐭", "🐘"),
+            X("Xếp từ nhỏ đến to nào!", "🐞", "🐱", "🐴", "🐳")),
+        B("quyluat", 3, "Cái gì trước, cái gì sau?", "🌱", 4,
+            X("Bé xếp cây lớn lên nhé: hạt, mầm, rồi cây!", "🌰", "🌱", "🌳"),
+            X("Xếp lại nào: quả trứng, gà con, rồi gà mẹ!", "🥚", "🐣", "🐔"),
+            X("Xếp buổi trong ngày: sáng, trưa, tối!", "🌅", "☀️", "🌙")),
+        B("phanloai", 3, "Nối đôi", "🔗", 3,
+            N("Bé nối con vật với món ăn của nó nhé!", "🐶=🦴", "🐰=🥕", "🐵=🍌"),
+            N("Nối đồ vật đi cùng nhau nào!", "🧦=👟", "✏️=📒", "🪥=🦷", "☂️=🌧️")),
+        .. KhoBaiHoc.TatCa(),
     ];
 }

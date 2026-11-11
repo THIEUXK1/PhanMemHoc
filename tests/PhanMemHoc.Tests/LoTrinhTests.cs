@@ -144,6 +144,72 @@ public class LoTrinhTests
     }
 
     [Fact]
+    public void ChamDiem_NoiVaSapXep_ChoPhepSaiToiDaMotLan()
+    {
+        var bai = new BaiHoc
+        {
+            CauHoi =
+            [
+                new() { Loai = LoaiCauHoi.Noi, Cap = ["1=a", "2=b"] },
+                new() { Loai = LoaiCauHoi.Noi, Cap = ["1=a", "2=b"] },
+                new() { Loai = LoaiCauHoi.SapXep, LuaChon = ["1", "2", "3"] },
+                new() { Loai = LoaiCauHoi.SapXep, LuaChon = ["1", "2", "3"] },
+            ],
+        };
+        Assert.Equal(2, LoTrinh.ChamDiem(bai, [0, 2, 1, 4]));
+    }
+
+    [Theory]
+    [InlineData(new[] { "1=a", "2=b" }, true)]
+    [InlineData(new[] { "1=a" }, false)]
+    [InlineData(new[] { "1=a", "2" }, false)]
+    [InlineData(new[] { "1=a", "1=b" }, false)]
+    [InlineData(new[] { "1=a", "2=a" }, false)]
+    public void KiemTra_CauNoi(string[] cap, bool hopLe)
+    {
+        var b = Bai(1, "so", 1);
+        b.CauHoi[0] = new CauHoi { Loai = LoaiCauHoi.Noi, DeBai = "?", Cap = [.. cap] };
+        Assert.Equal(hopLe, LoTrinh.KiemTra(b) is null);
+    }
+
+    [Fact]
+    public void KiemTra_CauSapXep_CanCacOKhacNhau()
+    {
+        var b = Bai(1, "so", 1);
+        b.CauHoi[0] = new CauHoi { Loai = LoaiCauHoi.SapXep, DeBai = "?", LuaChon = ["1", "2", "3"] };
+        Assert.Null(LoTrinh.KiemTra(b));
+        b.CauHoi[0].LuaChon = ["1", "1"];
+        Assert.NotNull(LoTrinh.KiemTra(b));
+    }
+
+    [Fact]
+    public void TinhHuyHieu_TheoSaoVaNhom()
+    {
+        var lt = LoTrinh.Tao([Bai(1, "so", 1), Bai(2, "so", 2), Bai(3, "hinh", 1)], [Kq(1, "so", 4), Kq(2, "so", 2)], 4);
+        var hh = LoTrinh.TinhHuyHieu(lt).ToDictionary(h => h.Ma, h => h.DaCo);
+        Assert.True(hh["sao1"]);
+        Assert.True(hh["ba-sao"]);
+        Assert.False(hh["sao10"]);
+        Assert.True(hh["nhom-so"]);
+        Assert.False(hh["nhom-hinh"]);
+        Assert.False(hh["vua"]);
+    }
+
+    [Fact]
+    public void BaiHocMau_TieuDeKhongTrung() =>
+        Assert.Empty(DuLieuMau.BaiHocMau().GroupBy(b => b.TieuDe).Where(g => g.Count() > 1).Select(g => g.Key));
+
+    [Fact]
+    public void KhoBaiHoc_SinhTatDinh_VaMoiNhomDuNhieuBai()
+    {
+        static string Dau(List<BaiHoc> ds) => string.Join("|", ds.Select(b =>
+            b.TieuDe + ":" + string.Join(";", b.CauHoi.Select(c => c.DeBai + c.Hien + string.Join(",", c.LuaChon) + c.DapAn + string.Join(",", c.Cap)))));
+        Assert.Equal(Dau(KhoBaiHoc.TatCa()), Dau(KhoBaiHoc.TatCa()));
+        foreach (var nl in DanhMucNangLuc.TatCa)
+            Assert.True(DuLieuMau.BaiHocMau().Count(b => b.NangLuc == nl.Ma) >= 10, $"Nhóm {nl.Ma} còn ít bài");
+    }
+
+    [Fact]
     public void BaiHocMau_DeuHopLe() =>
         Assert.All(DuLieuMau.BaiHocMau(), b => Assert.Null(LoTrinh.KiemTra(b)));
 }

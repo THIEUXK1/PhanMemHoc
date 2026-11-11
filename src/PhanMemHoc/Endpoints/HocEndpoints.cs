@@ -71,7 +71,7 @@ public static class HocEndpoints
             if (be is null) return Results.NotFound();
             var tuoi = be.Tuoi(DateTime.Now);
             var lt = LoTrinh.Tao(db.BaiHoc.FindAll(), db.KetQuaCuaBe(id), tuoi);
-            return Results.Ok(new { Be = new { be.Id, be.Ten, be.AnhDaiDien, Tuoi = tuoi }, lt.Nhom, lt.GoiYBaiId, lt.TongSao });
+            return Results.Ok(new { Be = new { be.Id, be.Ten, be.AnhDaiDien, Tuoi = tuoi }, lt.Nhom, lt.GoiYBaiId, lt.TongSao, HuyHieu = LoTrinh.TinhHuyHieu(lt) });
         });
 
         g.MapGet("/{id:int}/baihoc/{baiId:int}", (int id, int baiId, ClaimsPrincipal u, AppDb db) =>
@@ -108,7 +108,10 @@ public static class HocEndpoints
             var moKhoaMoi = sau.Nhom.SelectMany(n => n.Bai).Where(b => b.DaMo && !daMoTruoc.Contains(b.Id))
                 .Select(b => new { b.Id, b.TieuDe, b.Icon }).ToList();
 
-            return Results.Ok(new { kq.SoCauDung, kq.TongCau, kq.Sao, MoKhoaMoi = moKhoaMoi, sau.GoiYBaiId });
+            var coTruoc = LoTrinh.TinhHuyHieu(truoc).Where(h => h.DaCo).Select(h => h.Ma).ToHashSet();
+            var huyHieuMoi = LoTrinh.TinhHuyHieu(sau).Where(h => h.DaCo && !coTruoc.Contains(h.Ma)).ToList();
+
+            return Results.Ok(new { kq.SoCauDung, kq.TongCau, kq.Sao, MoKhoaMoi = moKhoaMoi, HuyHieuMoi = huyHieuMoi, sau.GoiYBaiId });
         });
 
         g.MapGet("/{id:int}/baocao", (int id, ClaimsPrincipal u, AppDb db) =>

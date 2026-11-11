@@ -3,7 +3,7 @@
 ## Dự án
 - "Bé Vui Học": app học cho trẻ; phụ huynh quản lý hồ sơ bé, lộ trình theo năng lực; admin quản lý bài học.
 - .NET 10 Minimal API + LiteDB 5 (file `phanmemhoc.db`) + cookie auth · SPA JS thuần (ES module, hash router) · xUnit.
-- Chưa có git, chưa có máy deploy.
+- Git: `origin` = github.com/THIEUXK1/PhanMemHoc (nhánh `main`). Chưa có máy deploy.
 
 ## Phân bổ file
 | Loại | Nơi |
@@ -37,6 +37,7 @@
 - Build: `dotnet build -v q -clp:ErrorsOnly`
 - Test: `dotnet test -v q --nologo 2>&1 | grep -E "Failed|error|Passed!|Failed!" | head -n 20`
 - Hot reload (nền): `dotnet watch --non-interactive --project src/PhanMemHoc > watch.log 2>&1` → `tail -n 30 watch.log`
+- Deploy: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/deploy.ps1` (`-SkipTests` để nhanh hơn). Thông tin server/key nằm ở `scripts/deploy.local.ps1` (gitignore — KHÔNG ghi IP/user/fingerprint vào file được commit). Giữ DB server + backup trên server.
 - LiteDB `Connection=direct` khoá file: dừng watcher trước khi chạy instance thứ hai.
 
 ## Task → đọc doc nào (`.claude/docs/`)

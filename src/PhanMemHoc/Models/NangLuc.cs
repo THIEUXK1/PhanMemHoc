@@ -19,6 +19,8 @@ public static class DanhMucNangLuc
             "Nhờ bé phân loại quần áo khi gấp đồ, hoặc xếp rau củ và trái cây riêng ra."),
         new("trinho", "Trí nhớ", "🧠", "Ghi nhớ hình ảnh, lật thẻ tìm cặp giống nhau.",
             "Đặt 3–4 đồ vật lên bàn, cho bé nhìn rồi che lại và hỏi vừa có những gì."),
+        new("chu", "Chữ cái", "🔤", "Nhận biết chữ cái tiếng Việt, chữ hoa – chữ thường, chữ cái đầu của từ.",
+            "Cùng bé tìm chữ cái trên bao bì, biển hiệu; đố bé \"con gì bắt đầu bằng chữ B?\"."),
     ];
 
     public static NangLuc? Tim(string ma) => TatCa.FirstOrDefault(x => x.Ma == ma);

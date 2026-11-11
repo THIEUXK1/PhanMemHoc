@@ -20,6 +20,10 @@ public static class LoaiCauHoi
     public const string Chon = "chon";
     /// <summary>Lật thẻ tìm các cặp giống nhau.</summary>
     public const string Ghep = "ghep";
+    /// <summary>Nối đôi: mỗi phần tử Cap dạng "trái=phải", bé chạm trái rồi chạm phải để nối.</summary>
+    public const string Noi = "noi";
+    /// <summary>Xếp thứ tự: LuaChon theo đúng thứ tự, bé kéo/chạm lần lượt vào các ô.</summary>
+    public const string SapXep = "sapxep";
 }
 
 public class CauHoi
@@ -31,6 +35,6 @@ public class CauHoi
     public string Hien { get; set; } = "";
     public List<string> LuaChon { get; set; } = [];
     public int DapAn { get; set; }
-    /// <summary>Loại "ghep": mỗi phần tử sinh ra 2 thẻ giống nhau.</summary>
+    /// <summary>Loại "ghep": mỗi phần tử sinh ra 2 thẻ giống nhau. Loại "noi": mỗi phần tử "trái=phải".</summary>
     public List<string> Cap { get; set; } = [];
 }

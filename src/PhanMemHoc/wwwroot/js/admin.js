@@ -56,9 +56,13 @@ export async function manAdmin(root, topbar) {
   ve();
 }
 
-const cauMoi = loai => loai === 'ghep'
-  ? { loai: 'ghep', deBai: 'Bé tìm các cặp giống nhau nhé!', hien: '', luaChon: [], dapAn: 0, cap: ['🐶', '🐱', '🐰'] }
-  : { loai: 'chon', deBai: '', hien: '', luaChon: ['', '', ''], dapAn: 0, cap: [] };
+const LOAI = { chon: 'Chọn đáp án', ghep: 'Lật thẻ ghép cặp', noi: 'Nối đôi', sapxep: 'Xếp thứ tự' };
+const cauMoi = loai => ({
+  ghep: { loai, deBai: 'Bé tìm các cặp giống nhau nhé!', hien: '', luaChon: [], dapAn: 0, cap: ['🐶', '🐱', '🐰'] },
+  noi: { loai, deBai: 'Bé nối các hình đi cùng nhau nhé!', hien: '', luaChon: [], dapAn: 0, cap: ['🐶=🦴', '🐰=🥕', '🐵=🍌'] },
+  sapxep: { loai, deBai: 'Bé xếp từ bé đến lớn nhé!', hien: '', luaChon: ['1', '2', '3'], dapAn: 0, cap: [] },
+}[loai] ?? { loai: 'chon', deBai: '', hien: '', luaChon: ['', '', ''], dapAn: 0, cap: [] });
+const dong = v => v.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
 
 export async function manSuaBai(root, topbar, id) {
   const bai = id ? await api(`/api/admin/baihoc/${id}`) : {
@@ -90,8 +94,7 @@ export async function manSuaBai(root, topbar, id) {
               <div class="q-head">
                 <b>Câu ${i + 1}</b>
                 <select data-q="loai" style="max-width:220px">
-                  <option value="chon" ${c.loai === 'chon' ? 'selected' : ''}>Chọn đáp án</option>
-                  <option value="ghep" ${c.loai === 'ghep' ? 'selected' : ''}>Lật thẻ ghép cặp</option>
+                  ${Object.entries(LOAI).map(([ma, ten]) => `<option value="${ma}" ${c.loai === ma ? 'selected' : ''}>${ten}</option>`).join('')}
                 </select>
                 <span style="flex:1"></span>
                 <button type="button" class="btn light small" data-act="len" ${i === 0 ? 'disabled' : ''} aria-label="Lên">⬆️</button>
@@ -99,7 +102,13 @@ export async function manSuaBai(root, topbar, id) {
                 <button type="button" class="btn danger small" data-act="xoa" aria-label="Xoá câu">🗑️</button>
               </div>
               <label class="field"><span>Đề bài (sẽ được đọc to cho bé)</span><input type="text" data-q="deBai" value="${esc(c.deBai)}"></label>
-              ${c.loai === 'ghep' ? `
+              ${c.loai === 'noi' ? `
+                <label class="field"><span>Các cặp nối (2–5 cặp, mỗi dòng một cặp dạng trái=phải, ví dụ 🐶=🦴)</span>
+                  <textarea rows="4" data-q="capdong">${esc(c.cap.join('\n'))}</textarea></label>`
+              : c.loai === 'sapxep' ? `
+                <label class="field"><span>Các ô theo ĐÚNG thứ tự (2–6 ô, mỗi dòng một ô — bé sẽ thấy xáo trộn)</span>
+                  <textarea rows="4" data-q="thutu">${esc(c.luaChon.join('\n'))}</textarea></label>`
+              : c.loai === 'ghep' ? `
                 <label class="field"><span>Các hình để ghép cặp (2–8 hình, cách nhau bằng dấu cách)</span>
                   <input type="text" data-q="cap" value="${esc(c.cap.join(' '))}"></label>` : `
                 <label class="field"><span>Hình minh hoạ (tuỳ chọn, ví dụ 🍎🍎🍎)</span><input type="text" data-q="hien" value="${esc(c.hien)}"></label>
@@ -115,6 +124,8 @@ export async function manSuaBai(root, topbar, id) {
           <div class="row" style="margin-bottom:18px">
             <button type="button" class="btn light" data-them="chon">➕ Câu chọn đáp án</button>
             <button type="button" class="btn light" data-them="ghep">➕ Câu lật thẻ</button>
+            <button type="button" class="btn light" data-them="noi">➕ Câu nối đôi</button>
+            <button type="button" class="btn light" data-them="sapxep">➕ Câu xếp thứ tự</button>
           </div>
           <div class="card row" style="position:sticky;bottom:12px;z-index:5">
             <p class="err" id="err" style="flex:1;margin:0"></p>
@@ -136,6 +147,8 @@ export async function manSuaBai(root, topbar, id) {
       const c = bai.cauHoi[+card.dataset.i];
       card.querySelectorAll('[data-q]').forEach(el => {
         if (el.dataset.q === 'cap') c.cap = el.value.split(/[\s,]+/).filter(Boolean);
+        else if (el.dataset.q === 'capdong') c.cap = dong(el.value);
+        else if (el.dataset.q === 'thutu') c.luaChon = dong(el.value);
         else c[el.dataset.q] = el.value;
       });
       card.querySelectorAll('[data-lc]').forEach(el => { c.luaChon[+el.dataset.lc] = el.value; });

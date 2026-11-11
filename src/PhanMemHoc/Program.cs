@@ -39,5 +39,6 @@ app.UseAuthorization();
 app.MapAuth();
 app.MapHoc();
 app.MapAdmin();
+app.MapTts();
 
 app.Run();

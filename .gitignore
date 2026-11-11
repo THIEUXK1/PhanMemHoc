@@ -488,3 +488,13 @@ $RECYCLE.BIN/
 watch.log
 .claude/settings.local.json
 .claude/pending/
+
+# Cache giọng đọc TTS
+tts-cache/
+
+# Thông tin máy chủ (bí mật)
+scripts/deploy.local.ps1
+*.pem
+*.key
+id_*
+.env.*

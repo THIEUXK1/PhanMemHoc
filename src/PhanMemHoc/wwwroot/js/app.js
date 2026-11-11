@@ -1,4 +1,4 @@
-import { api, esc, toast, stars, state, nangLucTheoMa, noi } from './core.js';
+import { api, esc, toast, stars, state, nangLucTheoMa, linhVat, lvNoi, cuBong, am } from './core.js';
 import { manChoi } from './game.js';
 import { manAdmin, manSuaBai } from './admin.js';
 
@@ -59,7 +59,7 @@ function manDangNhap() {
     root.innerHTML = `
       <div class="wrap">
         <div class="auth">
-          <div class="mascot">🦉</div>
+          <div class="mascot">${cuBong('chao')}</div>
           <h1>Bé Vui Học</h1>
           <p class="muted">Học mà chơi – chơi mà học cho bé 3–6 tuổi</p>
           <div class="card">
@@ -184,45 +184,122 @@ function formBe(be) {
   });
 }
 
-// ---------- Bản đồ học của bé ----------
+// ---------- Bản đồ phiêu lưu của bé ----------
+const MAU_DAO = { so: ['#ffb347', '#ff8a00'], hinh: ['#c77dff', '#8338ec'], sosanh: ['#6ec6ff', '#3a86ff'],
+  quyluat: ['#7ee2a8', '#2ec27e'], phanloai: ['#ff9ab4', '#ef476f'], trinho: ['#5ee0d0', '#14a99a'], chu: ['#a5a8ff', '#5a54d6'] };
+const mauDao = ma => MAU_DAO[ma] ?? ['#ffd166', '#ff8a00'];
+const daXong = n => n.bai.filter(b => b.saoCaoNhat > 0).length;
+// Đảo đang xem — nhớ theo từng bé trong phiên (chỉ là tiện ích, lỗi storage thì bỏ qua)
+const docDao = beId => { try { return sessionStorage.getItem(`dao-${beId}`); } catch { return null; } };
+const ghiDao = (beId, ma) => { try { sessionStorage.setItem(`dao-${beId}`, ma); } catch { /* bỏ qua */ } };
+const CAO_NUT = 150; // px mỗi chặng trên đường đi
+
+/** Đường đi zíc-zắc: toạ độ x (%) của chặng thứ k. */
+const viTriX = k => 50 + Math.sin(k * 1.25) * 28;
+
+function veDao(n, beId, goiYId) {
+  const [mau1, mau2] = mauDao(n.ma);
+  const xong = daXong(n);
+  const cao = n.bai.length * CAO_NUT;
+  const diem = n.bai.map((_, k) => [viTriX(k), k * CAO_NUT + 56]);
+  const duong = diem.map(([x, y], k) => {
+    if (!k) return `M${x} ${y}`;
+    const [px, py] = diem[k - 1];
+    return `C${px} ${py + CAO_NUT / 2} ${x} ${y - CAO_NUT / 2} ${x} ${y}`;
+  }).join('');
+  return `
+    <section class="dao" style="--dao1:${mau1};--dao2:${mau2}">
+      <header class="dao-head">
+        <span class="dao-ic">${esc(n.icon)}</span>
+        <h3>${esc(n.ten)}</h3>
+        <span class="dao-tien">${xong}/${n.bai.length} ✔️</span>
+      </header>
+      <div class="dao-duong" style="height:${cao}px">
+        <svg viewBox="0 0 100 ${cao}" preserveAspectRatio="none" aria-hidden="true">
+          <path d="${duong}" vector-effect="non-scaling-stroke"/>
+        </svg>
+        ${n.bai.map((b, k) => `
+          <button class="node" style="left:${viTriX(k)}%;top:${k * CAO_NUT}px;--i:${Math.min(k, 8)}" data-bai="${b.id}" ${b.daMo ? '' : 'disabled'} title="${esc(b.tieuDe)}">
+            <div class="bubble ${b.saoCaoNhat ? 'done' : ''} ${b.id === goiYId ? 'next' : ''}">
+              ${esc(b.icon)}${b.daMo ? '' : '<span class="lock">🔒</span>'}
+            </div>
+            <div class="nhan">${stars(b.saoCaoNhat)}<div class="name">${esc(b.tieuDe)}</div></div>
+            ${b.id === goiYId ? `<span class="cu-o-day ${viTriX(k) > 50 ? 'trai' : 'phai'}">${cuBong('', 'nho')}</span>` : ''}
+          </button>`).join('')}
+      </div>
+    </section>`;
+}
+
 async function manBanDo(beId) {
   const lt = await api(`/api/be/${beId}/lotrinh`);
   const tatCa = lt.nhom.flatMap(n => n.bai.map(b => ({ ...b, nhom: n })));
   const goiY = tatCa.find(b => b.id === lt.goiYBaiId);
+  const coHH = lt.huyHieu.filter(h => h.daCo).length;
+  const loiChao = goiY
+    ? `Chào ${lt.be.ten}! Hôm nay mình học ${goiY.tieuDe} nhé!`
+    : `${lt.be.ten} giỏi quá, đã học xong hết rồi!`;
 
   root.innerHTML = `
     <div class="wrap">
       ${topbar({
         back: '#/',
-        title: `<span style="font-size:40px">${esc(lt.be.anhDaiDien)}</span> ${esc(lt.be.ten)}`,
-        right: `<span class="chip">⭐ ${lt.tongSao}</span>`,
+        title: `<span class="be-av">${esc(lt.be.anhDaiDien)}</span> ${esc(lt.be.ten)}`,
+        right: `<span class="chip sao-chip">⭐ ${lt.tongSao}</span><span class="chip">🏅 ${coHH}</span>`,
       })}
-      ${goiY ? `
-        <div class="hero">
-          <div class="big-icon">${esc(goiY.icon)}</div>
-          <div class="grow">
+      <div class="hero">
+        ${linhVat('lv-hero', loiChao)}
+        <div class="grow">
+          ${goiY ? `
             <div style="opacity:.9;font-weight:700">${goiY.saoCaoNhat ? 'Ôn lại nhé' : 'Bài học hôm nay'} · ${esc(goiY.nhom.icon)} ${esc(goiY.nhom.ten)}</div>
-            <h2>${esc(goiY.tieuDe)}</h2>
-          </div>
-          <a class="btn big light" href="#/be/${beId}/hoc/${goiY.id}">▶️ Học ngay</a>
-        </div>` : `<div class="card">🎉 Bé đã hoàn thành tất cả bài học!</div>`}
-      ${lt.nhom.map(n => `
-        <div class="section-title">${esc(n.icon)} ${esc(n.ten)}</div>
-        <div class="path">
-          ${n.bai.map(b => `
-            <button class="node" data-bai="${b.id}" ${b.daMo ? '' : 'disabled'} title="${esc(b.tieuDe)}">
-              <div class="bubble ${b.saoCaoNhat ? 'done' : ''} ${b.id === lt.goiYBaiId ? 'next' : ''}">
-                ${esc(b.icon)}${b.daMo ? '' : '<span class="lock">🔒</span>'}
-              </div>
-              <div class="name">${esc(b.tieuDe)}</div>
-              ${stars(b.saoCaoNhat)}
-            </button>`).join('')}
-        </div>`).join('')}
+            <h2>${esc(goiY.icon)} ${esc(goiY.tieuDe)}</h2>
+            <a class="btn big light nay" href="#/be/${beId}/hoc/${goiY.id}">▶️ Học ngay</a>`
+          : `<h2>🎉 Bé đã hoàn thành tất cả bài học!</h2>`}
+        </div>
+      </div>
+
+      <div class="section-title">🏅 Bộ sưu tập huy hiệu <span class="muted" style="font-size:16px">${coHH}/${lt.huyHieu.length}</span></div>
+      <div class="hh-ds cuon">
+        ${lt.huyHieu.map(h => `
+          <div class="hh ${h.daCo ? 'co' : ''}" title="${esc(h.moTa)}">
+            <span class="hh-ic">${h.daCo ? esc(h.icon) : '❔'}</span><b>${esc(h.ten)}</b><small>${esc(h.moTa)}</small>
+          </div>`).join('')}
+      </div>
+
+      <div class="section-title">🗺️ Bản đồ phiêu lưu <span class="muted" style="font-size:16px">${tatCa.length} bài</span></div>
+      <div class="dao-tabs">
+        ${lt.nhom.map(n => `
+          <button class="dao-tab" data-dao="${n.ma}" style="--dao1:${mauDao(n.ma)[0]};--dao2:${mauDao(n.ma)[1]}">
+            <span class="dao-ic">${esc(n.icon)}</span><b>${esc(n.ten)}</b>
+            <small>${daXong(n)}/${n.bai.length}</small>
+            <i class="dao-vach" style="width:${Math.round(100 * daXong(n) / n.bai.length)}%"></i>
+          </button>`).join('')}
+      </div>
+      <div class="daos"></div>
       ${!lt.nhom.length ? `<div class="card muted">Chưa có bài học phù hợp với độ tuổi của bé.</div>` : ''}
     </div>`;
 
-  root.querySelectorAll('[data-bai]').forEach(b => b.onclick = () => { location.hash = `#/be/${beId}/hoc/${b.dataset.bai}`; });
-  if (goiY) setTimeout(() => location.hash === `#/be/${beId}` && noi(`Chào ${lt.be.ten}! Hôm nay mình học ${goiY.tieuDe} nhé!`), 400);
+  const hienDao = (ma, cuon) => {
+    const n = lt.nhom.find(x => x.ma === ma) ?? lt.nhom[0];
+    if (!n) return;
+    ghiDao(beId, n.ma);
+    root.querySelectorAll('.dao-tab').forEach(t => t.classList.toggle('on', t.dataset.dao === n.ma));
+    root.querySelector('.daos').innerHTML = veDao(n, beId, lt.goiYBaiId);
+    if (!cuon) return;
+    const den = root.querySelector('.daos .bubble.next') ?? [...root.querySelectorAll('.daos .node:not(:disabled) .bubble:not(.done)')][0];
+    (den ?? root.querySelector('.dao-tabs')).scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+  hienDao(docDao(beId) ?? goiY?.nhom.ma, false);
+  root.querySelector('.dao-tabs').addEventListener('click', e => {
+    const t = e.target.closest('[data-dao]');
+    if (t) { am.pop(); hienDao(t.dataset.dao, true); }
+  });
+
+  root.querySelector('.daos').addEventListener('click', e => {
+    const b = e.target.closest('[data-bai]');
+    if (b && !b.disabled) location.hash = `#/be/${beId}/hoc/${b.dataset.bai}`;
+  });
+  root.querySelector('.lv-hero')?.addEventListener('click', () => lvNoi(loiChao, 'vui'));
+  setTimeout(() => location.hash === `#/be/${beId}` && lvNoi(loiChao, 'chao'), 500);
 }
 
 // ---------- Báo cáo cho phụ huynh ----------
